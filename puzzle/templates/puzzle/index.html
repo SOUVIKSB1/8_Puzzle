@@ -2,140 +2,706 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>8 Puzzle Game</title>
+    <title>8 Puzzle Concept Simulator & Solver</title>
     <link rel="stylesheet" href="{% static 'puzzle/style.css' %}">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="glass-container">
-        <h1 id="game-heading" style="cursor:pointer;">8 Puzzle Game</h1>
-        <table>
-            {% for i in board %}
-                {% if forloop.counter0|divisibleby:3 %}<tr>{% endif %}
-                <td>
-                    {% if i != 0 %}
-                        <a href="{% url 'move_tile' i %}" onclick="setTimeout(checkWinCondition, 100)">{{ i }}</a>
-                    {% endif %}
-                </td>
-                {% if forloop.counter|divisibleby:3 %}</tr>{% endif %}
-            {% endfor %}
-        </table>
-        <p style="text-align:center;">
-            <a href="{% url 'reset' %}" class="reset-btn">Reset Game</a>
-        </p>
-        <p style="text-align:center;">
-            <button id="hint-btn" class="reset-btn" style="background: linear-gradient(45deg, #2196f3, #21cbf3); margin-top:10px;">Show Hint</button>
-        </p>
-        <div id="hint-container" style="text-align:center; margin-top:15px;">
-            <span class="hint" style="display:none;">
-                Suggested Move: <strong id="hint-move"></strong><br>
-                Goal: <strong>1 2 3 | 4 5 6 | 7 8</strong>
-            </span>
+        <div class="app-header">
+            <h1 id="game-heading">8 Puzzle Simulator</h1>
+            <button id="drawer-toggle-btn" class="concept-btn-badge">Learn A*</button>
+        </div>
+        
+        <div class="app-layout">
+            <!-- Left Panel: Game Board & Stats -->
+            <div class="game-section">
+                <!-- Stats Dashboard -->
+                <div class="stats-dashboard">
+                    <div class="stat-card">
+                        <span class="stat-icon">🕒</span>
+                        <span class="stat-label">Time</span>
+                        <span id="timer-display" class="stat-value">00:00</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">🔢</span>
+                        <span class="stat-label">Moves</span>
+                        <span id="moves-count" class="stat-value">0</span>
+                    </div>
+                    <!-- Heuristics Switch Card -->
+                    <div class="stat-card toggle-card">
+                        <span class="stat-icon">👁️</span>
+                        <span class="stat-label">Heuristics</span>
+                        <label class="switch">
+                            <input type="checkbox" id="heuristic-toggle">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="solver-status-container">
+                    <span class="solver-icon">🤖</span>
+                    <span id="solver-info" class="solver-info-text">Status: Ready</span>
+                </div>
+
+                <!-- Puzzle Grid -->
+                <div id="board-grid" class="board-grid">
+                    {% for i in board %}
+                        <div class="grid-cell" data-index="{{ forloop.counter0 }}">
+                            {% if i != 0 %}
+                                <button class="tile-btn" data-tile="{{ i }}" id="tile-{{ i }}" style="view-transition-name: tile-{{ i }}">{{ i }}</button>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Controls -->
+                <div class="controls-panel">
+                    <button id="reset-btn" class="reset-btn control-btn">Reset Board</button>
+                    <button id="hint-btn" class="reset-btn control-btn" style="background: var(--color-blue); color: #050507;">Show Hint</button>
+                    <button id="solve-btn" class="reset-btn control-btn" style="background: var(--color-orange); color: #050507;">Auto Solve</button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Concept Evaluation Tree -->
+            <div class="concept-section">
+                <div class="concept-card">
+                    <h2 class="concept-title">A* Search Evaluation Tree</h2>
+                    <p class="concept-intro">
+                        A* selects the next state by minimizing total cost: <br>
+                        <span class="math-expr">f(n) = g(n) + h(n)</span>
+                    </p>
+
+                    <div class="tree-container">
+                        <!-- Current State Node -->
+                        <div class="tree-level">
+                            <div class="tree-node current-node">
+                                <div class="node-title">Current State (n)</div>
+                                <div id="tree-current-grid" class="mini-grid"></div>
+                                <div class="node-cost-box current-cost">
+                                    g(n) = <span id="tree-current-g">0</span> steps
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Connector label -->
+                        <div class="tree-connector-label">Possible Next States (Neighbors)</div>
+
+                        <!-- Children / Neighbors Level -->
+                        <div class="tree-level children-level" id="tree-branches">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
+        <!-- Professional Win Overlay -->
         <div id="win-overlay" class="win-overlay">
-            <div class="win-message">🎉 Congratulations! You Won! 🎊</div>
-            <div class="win-emojis">🌸 🌼 🌺 🌻 🌷</div>
-            <button class="replay-btn" onclick="location.href='{% url 'reset' %}'">Play Again</button>
-            <div class="confetti"></div>
+            <div class="win-card">
+                <div class="win-success-circle">
+                    <svg class="checkmark-svg" viewBox="0 0 52 52">
+                        <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                        <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                    </svg>
+                </div>
+                
+                <h2 class="win-header">Simulation Complete</h2>
+                <p class="win-subheader">The puzzle has been solved successfully!</p>
+                
+                <div class="win-analytics-container">
+                    <div class="analytics-row">
+                        <span class="analytics-label">Total Time</span>
+                        <span id="win-time" class="analytics-value">00:00</span>
+                    </div>
+                    <div class="analytics-row">
+                        <span class="analytics-label">Moves Made</span>
+                        <span id="win-moves" class="analytics-value">0</span>
+                    </div>
+                    <div class="analytics-row">
+                        <span class="analytics-label">Optimal A* Path</span>
+                        <span id="win-optimal-moves" class="analytics-value">0</span>
+                    </div>
+                    <div class="analytics-row efficiency-row">
+                        <span class="analytics-label">Solver Path Efficiency</span>
+                        <span id="win-efficiency" class="analytics-value">100%</span>
+                    </div>
+                </div>
+                
+                <button class="replay-btn" id="replay-btn">Play / Simulate Again</button>
+            </div>
+            <!-- Dynamic Neon Particle Background -->
+            <canvas id="win-particles-canvas" class="win-particles-canvas"></canvas>
         </div>
-
-        <footer style="
-  margin-top: 40px; 
-  padding: 20px; 
-  text-align: center; 
-  background: rgba(255, 255, 255, 0.1); 
-  backdrop-filter: blur(15px); 
-  -webkit-backdrop-filter: blur(15px);
-  border-top: 2px solid rgba(255, 255, 255, 0.3); 
-  font-size: 1.1em; 
-  letter-spacing: 0.7px; 
-  box-shadow: 0 -2px 15px rgba(255, 255, 255, 0.25); 
-  border-radius: 12px 12px 0 0;
-  color: black;
-  font-weight: bold;
-  animation: moltenGlow 3s ease-in-out infinite;
-">
-  <div style="
-    animation: fadeIn 1.2s ease forwards;
-  ">
-    Developed by:<br>
-    Souvik Sinhababu, Sayantika Giri, Deepa Priya, Supriya Satpati, Rajarshi Chatterjee<br>
-    <span style="
-      display:inline-block; 
-      margin-top:8px; 
-      font-size: 0.95em; 
-      font-style: italic; 
-      background: rgba(255,255,255,0.1);
-      padding: 4px 12px; 
-      border-radius: 8px;
-      text-shadow: none;
-      color: black;
-      font-weight: bold;
-    ">Techno Main Salt Lake</span>
-  </div>
-</footer>
+        
+        <!-- Professional Footer -->
+        <footer class="app-footer">
+            <div class="footer-logo-container">
+                <span class="footer-logo">&lt; Souvik .&nbsp;/&gt;</span>
+            </div>
+        </footer>
     </div>
 
+    <!-- Slide-out Concept Drawer -->
+    <div id="concept-drawer" class="concept-drawer">
+        <div class="drawer-header">
+            <h2>A* Search Concept</h2>
+            <button id="drawer-close-btn" class="close-btn">&times;</button>
+        </div>
+        <div class="drawer-content">
+            <h3>What is the 8-Puzzle?</h3>
+            <p>The 8-puzzle is a sliding puzzle consisting of a 3x3 grid of numbered tiles in random order with one tile missing. The goal is to place the tiles in order (1 to 8, with the blank space at the end) by sliding tiles into the empty space.</p>
+            
+            <h3>What is A* Search?</h3>
+            <p>A* is a path-finding algorithm used to find the shortest path from a start configuration to the goal state. It calculates a cost value <strong>f(n)</strong> for neighboring states and chooses the path that minimizes:</p>
+            <div class="math-card">
+                f(n) = g(n) + h(n)
+            </div>
+            <ul>
+                <li><strong>g(n)</strong>: The path cost (number of moves made from the start state to the current state).</li>
+                <li><strong>h(n)</strong>: The heuristic cost (estimated cost to reach the goal state). We use the <strong>Manhattan Distance</strong>.</li>
+            </ul>
+            
+            <h3>What is Manhattan Distance?</h3>
+            <p>For each tile, it counts the absolute horizontal + vertical distance to its target goal position: <br>
+            <span class="math-expr">distance = |x1 - x2| + |y1 - y2|</span>. <br>
+            Adding these distances for all 8 numbered tiles gives <strong>h(n)</strong>. A heuristic cost of 0 means the puzzle is solved!</p>
+            
+            <div class="educational-tip">
+                <strong>Visual Tip:</strong> Toggle the <strong>Heuristics</strong> switch on the dashboard. It overlays the individual Manhattan distance badge directly on each tile in real-time!
+            </div>
+        </div>
+    </div>
+    <div id="drawer-backdrop" class="drawer-backdrop"></div>
+
     <script>
-        function checkWinCondition() {
-            const tiles = Array.from(document.querySelectorAll('td')).map(td => td.textContent.trim() || "0");
-            const goal = ["1","2","3","4","5","6","7","8","0"];
-            if (JSON.stringify(tiles) === JSON.stringify(goal)) {
-                triggerWin();
+        let movesCount = 0;
+        let timerInterval = null;
+        let secondsElapsed = 0;
+        let isSimulating = false;
+        let simulationTimeout = null;
+        let initialOptimalPathLength = 0;
+
+        // Canvas Particle parameters
+        let canvas = document.getElementById("win-particles-canvas");
+        let ctx = canvas.getContext("2d");
+        let particles = [];
+        let canvasAnimFrame = null;
+
+        // Initialize state
+        document.addEventListener('DOMContentLoaded', () => {
+            initGame();
+            
+            // Attach button listeners
+            document.getElementById('reset-btn').addEventListener('click', handleReset);
+            document.getElementById('hint-btn').addEventListener('click', showHint);
+            document.getElementById('solve-btn').addEventListener('click', startSimulation);
+            document.getElementById('replay-btn').addEventListener('click', () => {
+                document.getElementById("win-overlay").classList.remove("active");
+                if (canvasAnimFrame) cancelAnimationFrame(canvasAnimFrame);
+                handleReset();
+            });
+            document.getElementById('game-heading').addEventListener('click', triggerWin);
+
+            // Event delegation for tile buttons
+            document.getElementById('board-grid').addEventListener('click', (e) => {
+                const btn = e.target.closest('.tile-btn');
+                if (btn && !isSimulating) {
+                    const tileValue = parseInt(btn.getAttribute('data-tile'));
+                    handleTileClick(tileValue);
+                }
+            });
+
+            // Heuristics Checkbox listener
+            document.getElementById('heuristic-toggle').addEventListener('change', () => {
+                const board = getBoardStateFromDOM();
+                updateBoardUI(board);
+            });
+
+            // Drawer Toggle listeners
+            const drawer = document.getElementById('concept-drawer');
+            const backdrop = document.getElementById('drawer-backdrop');
+            
+            document.getElementById('drawer-toggle-btn').addEventListener('click', () => {
+                drawer.classList.add('active');
+                backdrop.classList.add('active');
+            });
+            
+            document.getElementById('drawer-close-btn').addEventListener('click', closeDrawer);
+            backdrop.addEventListener('click', closeDrawer);
+            
+            function closeDrawer() {
+                drawer.classList.remove('active');
+                backdrop.classList.remove('active');
+            }
+
+            window.addEventListener('resize', resizeCanvas);
+        });
+
+        async function initGame() {
+            resetStats();
+            
+            // Grab initial state from DOM
+            const board = getBoardStateFromDOM();
+            
+            // Compute background hint and render decision tree
+            const optimalTile = await getOptimalMoveTile();
+            renderEvaluationTree(board, optimalTile);
+
+            // Solve in background to get initial optimal path length
+            await fetchInitialOptimalPathLength();
+        }
+
+        function getBoardStateFromDOM() {
+            const cells = document.querySelectorAll('#board-grid .grid-cell');
+            const board = [];
+            cells.forEach(cell => {
+                const btn = cell.querySelector('.tile-btn');
+                board.push(btn ? parseInt(btn.getAttribute('data-tile')) : 0);
+            });
+            return board;
+        }
+
+        async function fetchInitialOptimalPathLength() {
+            try {
+                const res = await fetch('/api/solve/');
+                const data = await res.json();
+                initialOptimalPathLength = data.steps || 0;
+            } catch (err) {
+                console.error("Error getting initial path length", err);
             }
         }
 
-        document.getElementById('hint-btn').addEventListener('click', function() {
-            // Get current board state
-            const tiles = Array.from(document.querySelectorAll('td')).map(td => td.textContent.trim() || "0");
-            const goal = ["1","2","3","4","5","6","7","8","0"];
+        async function getOptimalMoveTile() {
+            try {
+                const res = await fetch('/api/hint/');
+                const data = await res.json();
+                return data.hint;
+            } catch (err) {
+                console.error("Error getting background optimal move", err);
+                return null;
+            }
+        }
+
+        function startTimer() {
+            stopTimer();
+            secondsElapsed = 0;
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(secondsElapsed / 60);
+            const secs = secondsElapsed % 60;
+            const formatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            document.getElementById('timer-display').textContent = formatted;
+        }
+
+        function resetStats() {
+            movesCount = 0;
+            document.getElementById('moves-count').textContent = movesCount;
+            updateSolverStatus("Status: Ready");
+            startTimer();
+        }
+
+        function incrementMoves() {
+            movesCount++;
+            document.getElementById('moves-count').textContent = movesCount;
+        }
+
+        function updateSolverStatus(text) {
+            document.getElementById('solver-info').textContent = text;
+        }
+
+        function getTileManhattanDistance(tileValue, currentIndex) {
+            if (tileValue === 0) return 0;
+            const goalRow = Math.floor((tileValue - 1) / 3);
+            const goalCol = (tileValue - 1) % 3;
+            const currRow = Math.floor(currentIndex / 3);
+            const currCol = currentIndex % 3;
+            return Math.abs(currRow - goalRow) + Math.abs(currCol - goalCol);
+        }
+
+        function updateBoardUI(newBoard) {
+            const gridCells = document.querySelectorAll('.grid-cell');
+            const showHeuristics = document.getElementById('heuristic-toggle').checked;
             
-            // Simple placeholder: show the difference between current and goal as moves
-            let moves = [];
-            for (let i = 0; i < tiles.length; i++) {
-                if (tiles[i] !== goal[i] && tiles[i] !== "0") {
-                    moves.push(tiles[i]);
+            const updateDOM = () => {
+                newBoard.forEach((tileValue, index) => {
+                    const cell = gridCells[index];
+                    cell.innerHTML = ''; // Clear cell
+                    
+                    if (tileValue !== 0) {
+                        const btn = document.createElement('button');
+                        btn.className = 'tile-btn';
+                        btn.setAttribute('data-tile', tileValue);
+                        btn.id = `tile-${tileValue}`;
+                        btn.textContent = tileValue;
+                        btn.style.viewTransitionName = `tile-${tileValue}`;
+
+                        // Heuristics overlay badge
+                        if (showHeuristics) {
+                            const dist = getTileManhattanDistance(tileValue, index);
+                            const badge = document.createElement('span');
+                            badge.className = `tile-h-badge ${dist === 0 ? 'correct' : 'incorrect'}`;
+                            badge.textContent = dist;
+                            btn.appendChild(badge);
+                        }
+
+                        cell.appendChild(btn);
+                    }
+                });
+            };
+
+            if (document.startViewTransition) {
+                document.startViewTransition(updateDOM);
+            } else {
+                updateDOM();
+            }
+        }
+
+        async function handleTileClick(tileValue) {
+            if (isSimulating) return;
+            
+            try {
+                const res = await fetch(`/api/move/${tileValue}/`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await res.json();
+                
+                if (data.moved) {
+                    updateBoardUI(data.board);
+                    incrementMoves();
+                    
+                    // Update Evaluation Tree
+                    const optimalTile = await getOptimalMoveTile();
+                    renderEvaluationTree(data.board, optimalTile);
+
+                    if (data.game_won) {
+                        stopTimer();
+                        triggerWin();
+                    }
+                }
+            } catch (err) {
+                console.error("Error moving tile", err);
+            }
+        }
+
+        async function handleReset() {
+            stopSimulation();
+            
+            try {
+                const res = await fetch('/api/reset/', {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await res.json();
+                updateBoardUI(data.board);
+                resetStats();
+                
+                // Re-sync background solver depth and tree
+                const optimalTile = await getOptimalMoveTile();
+                renderEvaluationTree(data.board, optimalTile);
+                await fetchInitialOptimalPathLength();
+            } catch (err) {
+                console.error("Error resetting game", err);
+            }
+        }
+
+        async function showHint() {
+            if (isSimulating) return;
+            
+            updateSolverStatus("Calculating optimal path...");
+            const optimalTile = await getOptimalMoveTile();
+            if (optimalTile) {
+                const tileBtn = document.getElementById(`tile-${optimalTile}`);
+                if (tileBtn) {
+                    document.querySelectorAll('.tile-btn').forEach(btn => btn.classList.remove('hint-highlight'));
+                    tileBtn.classList.add('hint-highlight');
+                    setTimeout(() => {
+                        tileBtn.classList.remove('hint-highlight');
+                    }, 2000);
+                    
+                    updateSolverStatus(`Suggested Move: Tile ${optimalTile}. See Evaluation Tree on right!`);
+                }
+            } else {
+                updateSolverStatus("Already solved!");
+            }
+        }
+
+        async function startSimulation() {
+            if (isSimulating) return;
+            isSimulating = true;
+            
+            // UI state
+            document.getElementById('solve-btn').disabled = true;
+            document.getElementById('hint-btn').disabled = true;
+            document.getElementById('board-grid').classList.add('simulating');
+            
+            updateSolverStatus("A* calculating optimal solution...");
+            
+            try {
+                const res = await fetch('/api/solve/');
+                const data = await res.json();
+                
+                if (data.error) {
+                    updateSolverStatus(`Error: ${data.error}`);
+                    resetSimulationButtons();
+                    return;
+                }
+                
+                const solution = data.solution;
+                updateSolverStatus(`A* solver path found: ${data.steps} steps. Explored ${data.nodes_explored} nodes.`);
+                
+                if (solution.length === 0) {
+                    updateSolverStatus("Already solved!");
+                    resetSimulationButtons();
+                    return;
+                }
+                
+                simulateNextMove(solution, 0);
+            } catch (err) {
+                updateSolverStatus("Simulation error.");
+                resetSimulationButtons();
+            }
+        }
+
+        function simulateNextMove(solution, index) {
+            if (index >= solution.length) {
+                updateSolverStatus("Solved successfully by A* simulation!");
+                resetSimulationButtons();
+                stopTimer();
+                triggerWin();
+                return;
+            }
+            
+            const tileValue = solution[index];
+            updateSolverStatus(`Simulating: Move tile ${tileValue} (${index + 1}/${solution.length})`);
+            
+            simulationTimeout = setTimeout(async () => {
+                try {
+                    const res = await fetch(`/api/move/${tileValue}/`, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    const data = await res.json();
+                    
+                    if (data.board) {
+                        updateBoardUI(data.board);
+                        incrementMoves();
+                        
+                        // Dynamically update tree neighbors and highlight the next step!
+                        const nextOptimal = (index + 1 < solution.length) ? solution[index + 1] : null;
+                        renderEvaluationTree(data.board, nextOptimal);
+                        
+                        simulateNextMove(solution, index + 1);
+                    } else {
+                        updateSolverStatus("Simulation stopped: invalid state.");
+                        resetSimulationButtons();
+                    }
+                } catch (err) {
+                    updateSolverStatus("Simulation connection error.");
+                    resetSimulationButtons();
+                }
+            }, 600);
+        }
+
+        function stopSimulation() {
+            if (isSimulating) {
+                clearTimeout(simulationTimeout);
+                resetSimulationButtons();
+            }
+        }
+
+        function resetSimulationButtons() {
+            isSimulating = false;
+            document.getElementById('solve-btn').disabled = false;
+            document.getElementById('hint-btn').disabled = false;
+            document.getElementById('board-grid').classList.remove('simulating');
+        }
+
+        // --- Concept Tree Logic ---
+        function getManhattanDistance(board) {
+            let distance = 0;
+            for (let i = 0; i < board.length; i++) {
+                const val = board[i];
+                if (val !== 0) {
+                    const goalRow = Math.floor((val - 1) / 3);
+                    const goalCol = (val - 1) % 3;
+                    const currRow = Math.floor(i / 3);
+                    const currCol = i % 3;
+                    distance += Math.abs(currRow - goalRow) + Math.abs(currCol - goalCol);
                 }
             }
-            if (moves.length > 0) {
-                document.getElementById('hint-move').textContent = moves.join(" → ");
-                document.querySelector('#hint-container .hint').style.display = 'inline-block';
-            } else {
-                document.getElementById('hint-move').textContent = "Already Solved!";
-                document.querySelector('#hint-container .hint').style.display = 'inline-block';
-            }
-        });
+            return distance;
+        }
 
-        document.getElementById('game-heading').addEventListener('click', triggerWin);
+        function renderEvaluationTree(currentBoard, hintTile) {
+            // Render Current Node Grid
+            const currentGrid = document.getElementById('tree-current-grid');
+            currentGrid.innerHTML = '';
+            currentBoard.forEach(val => {
+                const cell = document.createElement('div');
+                cell.className = `mini-cell ${val === 0 ? 'empty' : ''}`;
+                cell.textContent = val !== 0 ? val : '';
+                currentGrid.appendChild(cell);
+            });
+            document.getElementById('tree-current-g').textContent = movesCount;
+
+            // Find valid empty moves (up, down, left, right)
+            const emptyIndex = currentBoard.indexOf(0);
+            const row = Math.floor(emptyIndex / 3);
+            const col = emptyIndex % 3;
+            const adjacents = [];
+            
+            if (row > 0) adjacents.push(emptyIndex - 3);
+            if (row < 2) adjacents.push(emptyIndex + 3);
+            if (col > 0) adjacents.push(emptyIndex - 1);
+            if (col < 2) adjacents.push(emptyIndex + 1);
+
+            const branchesContainer = document.getElementById('tree-branches');
+            branchesContainer.innerHTML = '';
+
+            adjacents.forEach(adjIndex => {
+                const neighborBoard = [...currentBoard];
+                const tileMoved = neighborBoard[adjIndex];
+                
+                // Swap empty space and tile
+                neighborBoard[emptyIndex] = tileMoved;
+                neighborBoard[adjIndex] = 0;
+                
+                const g = movesCount + 1;
+                const h = getManhattanDistance(neighborBoard);
+                const f = g + h;
+                const isOptimal = (tileMoved === hintTile);
+
+                // Create tree node container
+                const node = document.createElement('div');
+                node.className = `tree-node branch-node ${isOptimal ? 'optimal-node' : ''}`;
+
+                const nodeTitle = document.createElement('div');
+                nodeTitle.className = 'node-title';
+                nodeTitle.textContent = `Move Tile ${tileMoved}`;
+                node.appendChild(nodeTitle);
+
+                const grid = document.createElement('div');
+                grid.className = 'mini-grid';
+                neighborBoard.forEach(val => {
+                    const cell = document.createElement('div');
+                    cell.className = `mini-cell ${val === 0 ? 'empty' : ''}`;
+                    cell.textContent = val !== 0 ? val : '';
+                    grid.appendChild(cell);
+                });
+                node.appendChild(grid);
+
+                const costBox = document.createElement('div');
+                costBox.className = 'node-cost-box';
+                costBox.innerHTML = `
+                    <div>g(n) = ${g} <span class="cost-desc">(steps)</span></div>
+                    <div>h(n) = ${h} <span class="cost-desc">(Manhattan)</span></div>
+                    <div class="total-f">f(n) = ${f}</div>
+                `;
+                node.appendChild(costBox);
+
+                if (isOptimal) {
+                    const badge = document.createElement('div');
+                    badge.className = 'optimal-badge';
+                    badge.textContent = 'A* Choice';
+                    node.appendChild(badge);
+                }
+
+                branchesContainer.appendChild(node);
+            });
+        }
+
+        // --- Professional Win Animation & Canvas ---
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
 
         function triggerWin() {
+            stopTimer();
             const overlay = document.getElementById("win-overlay");
+            
+            // Set statistics
+            document.getElementById("win-time").textContent = document.getElementById("timer-display").textContent;
+            document.getElementById("win-moves").textContent = movesCount;
+            document.getElementById("win-optimal-moves").textContent = initialOptimalPathLength;
+            
+            // Calculate Path Efficiency
+            let efficiency = 100;
+            if (movesCount > 0 && initialOptimalPathLength > 0) {
+                efficiency = Math.round((initialOptimalPathLength / movesCount) * 100);
+                if (efficiency > 100) efficiency = 100;
+            }
+            document.getElementById("win-efficiency").textContent = `${efficiency}%`;
+            
             overlay.classList.add("active");
+            spawnParticles();
+        }
 
-            // Generate confetti
-            const confettiContainer = overlay.querySelector(".confetti");
-            confettiContainer.innerHTML = "";
-            for (let i = 0; i < 100; i++) {
-                const piece = document.createElement("div");
-                piece.classList.add("confetti-piece");
-                piece.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
-                piece.style.left = Math.random() * 100 + "%";
-                piece.style.animationDuration = 2 + Math.random() * 3 + "s";
-                piece.style.animationDelay = Math.random() * 2 + "s";
-                confettiContainer.appendChild(piece);
+        function spawnParticles() {
+            resizeCanvas();
+            particles = [];
+            
+            // Spawn 120 professional neon nodes
+            for (let i = 0; i < 120; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    angle: Math.random() * Math.PI * 2,
+                    speed: 1 + Math.random() * 6,
+                    radius: 1 + Math.random() * 2.5,
+                    color: Math.random() > 0.4 ? '#3b82f6' : '#f59e0b', // Indigo-Blue or Amber-Orange
+                    alpha: 1,
+                    decay: 0.005 + Math.random() * 0.012
+                });
+            }
+            animateParticles();
+        }
+
+        function animateParticles() {
+            if (!document.getElementById("win-overlay").classList.contains("active")) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            particles.forEach((p, index) => {
+                p.x += Math.cos(p.angle) * p.speed;
+                p.y += Math.sin(p.angle) * p.speed;
+                p.speed *= 0.985; // slight deceleration
+                p.alpha -= p.decay;
+                
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = p.color;
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                ctx.restore();
+                
+                if (p.alpha <= 0) {
+                    particles.splice(index, 1);
+                }
+            });
+            
+            if (particles.length > 0) {
+                canvasAnimFrame = requestAnimationFrame(animateParticles);
             }
         }
     </script>
-
-    <style>
-        @keyframes moltenGlow {
-          0%, 100% {
-            box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.2);
-          }
-          50% {
-            box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0.5);
-          }
-        }
-    </style>
 </body>
 </html>
