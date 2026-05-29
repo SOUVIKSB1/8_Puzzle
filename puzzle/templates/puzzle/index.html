@@ -1,0 +1,141 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>8 Puzzle Game</title>
+    <link rel="stylesheet" href="{% static 'puzzle/style.css' %}">
+</head>
+<body>
+    <div class="glass-container">
+        <h1 id="game-heading" style="cursor:pointer;">8 Puzzle Game</h1>
+        <table>
+            {% for i in board %}
+                {% if forloop.counter0|divisibleby:3 %}<tr>{% endif %}
+                <td>
+                    {% if i != 0 %}
+                        <a href="{% url 'move_tile' i %}" onclick="setTimeout(checkWinCondition, 100)">{{ i }}</a>
+                    {% endif %}
+                </td>
+                {% if forloop.counter|divisibleby:3 %}</tr>{% endif %}
+            {% endfor %}
+        </table>
+        <p style="text-align:center;">
+            <a href="{% url 'reset' %}" class="reset-btn">Reset Game</a>
+        </p>
+        <p style="text-align:center;">
+            <button id="hint-btn" class="reset-btn" style="background: linear-gradient(45deg, #2196f3, #21cbf3); margin-top:10px;">Show Hint</button>
+        </p>
+        <div id="hint-container" style="text-align:center; margin-top:15px;">
+            <span class="hint" style="display:none;">
+                Suggested Move: <strong id="hint-move"></strong><br>
+                Goal: <strong>1 2 3 | 4 5 6 | 7 8</strong>
+            </span>
+        </div>
+
+        <div id="win-overlay" class="win-overlay">
+            <div class="win-message">🎉 Congratulations! You Won! 🎊</div>
+            <div class="win-emojis">🌸 🌼 🌺 🌻 🌷</div>
+            <button class="replay-btn" onclick="location.href='{% url 'reset' %}'">Play Again</button>
+            <div class="confetti"></div>
+        </div>
+
+        <footer style="
+  margin-top: 40px; 
+  padding: 20px; 
+  text-align: center; 
+  background: rgba(255, 255, 255, 0.1); 
+  backdrop-filter: blur(15px); 
+  -webkit-backdrop-filter: blur(15px);
+  border-top: 2px solid rgba(255, 255, 255, 0.3); 
+  font-size: 1.1em; 
+  letter-spacing: 0.7px; 
+  box-shadow: 0 -2px 15px rgba(255, 255, 255, 0.25); 
+  border-radius: 12px 12px 0 0;
+  color: black;
+  font-weight: bold;
+  animation: moltenGlow 3s ease-in-out infinite;
+">
+  <div style="
+    animation: fadeIn 1.2s ease forwards;
+  ">
+    Developed by:<br>
+    Souvik Sinhababu, Sayantika Giri, Deepa Priya, Supriya Satpati, Rajarshi Chatterjee<br>
+    <span style="
+      display:inline-block; 
+      margin-top:8px; 
+      font-size: 0.95em; 
+      font-style: italic; 
+      background: rgba(255,255,255,0.1);
+      padding: 4px 12px; 
+      border-radius: 8px;
+      text-shadow: none;
+      color: black;
+      font-weight: bold;
+    ">Techno Main Salt Lake</span>
+  </div>
+</footer>
+    </div>
+
+    <script>
+        function checkWinCondition() {
+            const tiles = Array.from(document.querySelectorAll('td')).map(td => td.textContent.trim() || "0");
+            const goal = ["1","2","3","4","5","6","7","8","0"];
+            if (JSON.stringify(tiles) === JSON.stringify(goal)) {
+                triggerWin();
+            }
+        }
+
+        document.getElementById('hint-btn').addEventListener('click', function() {
+            // Get current board state
+            const tiles = Array.from(document.querySelectorAll('td')).map(td => td.textContent.trim() || "0");
+            const goal = ["1","2","3","4","5","6","7","8","0"];
+            
+            // Simple placeholder: show the difference between current and goal as moves
+            let moves = [];
+            for (let i = 0; i < tiles.length; i++) {
+                if (tiles[i] !== goal[i] && tiles[i] !== "0") {
+                    moves.push(tiles[i]);
+                }
+            }
+            if (moves.length > 0) {
+                document.getElementById('hint-move').textContent = moves.join(" → ");
+                document.querySelector('#hint-container .hint').style.display = 'inline-block';
+            } else {
+                document.getElementById('hint-move').textContent = "Already Solved!";
+                document.querySelector('#hint-container .hint').style.display = 'inline-block';
+            }
+        });
+
+        document.getElementById('game-heading').addEventListener('click', triggerWin);
+
+        function triggerWin() {
+            const overlay = document.getElementById("win-overlay");
+            overlay.classList.add("active");
+
+            // Generate confetti
+            const confettiContainer = overlay.querySelector(".confetti");
+            confettiContainer.innerHTML = "";
+            for (let i = 0; i < 100; i++) {
+                const piece = document.createElement("div");
+                piece.classList.add("confetti-piece");
+                piece.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                piece.style.left = Math.random() * 100 + "%";
+                piece.style.animationDuration = 2 + Math.random() * 3 + "s";
+                piece.style.animationDelay = Math.random() * 2 + "s";
+                confettiContainer.appendChild(piece);
+            }
+        }
+    </script>
+
+    <style>
+        @keyframes moltenGlow {
+          0%, 100% {
+            box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.2);
+          }
+          50% {
+            box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0.5);
+          }
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,311 @@
+/* ==========================================================================
+   1. Root Variables & General Setup
+   ========================================================================== */
+
+:root {
+  /* Colors & Gradients */
+  --grad-1: #89fffd;
+  --grad-2: #ef32d9;
+  --grad-btn-1: #ff512f;
+  --grad-btn-2: #dd2476;
+  --grad-replay-1: #4CAF50;
+  --grad-replay-2: #2ecc71;
+  --color-win: #ff4081;
+  --text-light: #fff;
+  --text-dark: #333;
+  --bg-table: rgba(255, 255, 255, 0.95);
+  --bg-glass: rgba(255, 255, 255, 0.1);
+  --shadow-color-main: rgba(31, 38, 135, 0.37);
+  --shadow-color-dark: rgba(0, 0, 0, 0.3);
+
+  /* Typography */
+  --font-primary: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+  /* Sizing & Radius */
+  --radius-main: 15px;
+  --radius-btn: 30px;
+
+  /* Transitions & Animations */
+  --transition-fast: 0.2s ease;
+  --transition-medium: 0.4s ease;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-primary);
+  background: linear-gradient(-45deg, var(--grad-1), var(--grad-2), #23a6d5, #23d5ab);
+  background-size: 400% 400%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: gradientShift 15s ease infinite;
+}
+
+/* ==========================================================================
+   2. Main Layout & Glass Container
+   ========================================================================== */
+
+.glass-container {
+  width: 100%;
+  max-width: 800px; /* prevent too wide on large screens */
+  background: var(--bg-glass);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: var(--radius-main);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px var(--shadow-color-main);
+  padding: 30px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* ==========================================================================
+   3. Typography
+   ========================================================================== */
+
+h1 {
+  font-size: clamp(2em, 5vw, 2.5em);
+  color: var(--text-light);
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+  margin-bottom: 30px;
+  animation: fadeInDown 1s ease-out;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   4. Game Board / Table
+   ========================================================================== */
+
+/* Game Board / Table */
+table {
+  border-collapse: collapse;
+  margin: 0 auto 30px auto;
+  background: var(--bg-table);
+  border-radius: var(--radius-main);
+  overflow: hidden;
+  box-shadow: 0 8px 20px var(--shadow-color-dark);
+}
+
+td {
+  border: 1px solid #ddd;
+  text-align: center;
+  font-size: 28px; /* fixed size */
+  font-weight: bold;
+  color: var(--text-dark);
+  width: 90px; /* fixed width */
+  height: 90px; /* fixed height */
+  padding: 0;
+}
+
+td a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+  /* NO transitions or animations during play */
+}
+
+td a:hover {
+  background: var(--grad-replay-1);
+  color: var(--text-light);
+  /* NO transform or scaling */
+  border-radius: 8px;
+}
+
+td a:active {
+  /* simple feedback, no animation */
+  background-color: rgba(76, 175, 80, 0.7);
+}
+
+/* ==========================================================================
+   5. Buttons
+   ========================================================================== */
+
+.reset-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  background: linear-gradient(45deg, var(--grad-btn-1), var(--grad-btn-2));
+  color: var(--text-light);
+  text-decoration: none;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-size: 1.1em;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px var(--shadow-color-dark);
+  transition: all var(--transition-medium);
+}
+
+.reset-btn:hover {
+  background: linear-gradient(45deg, var(--grad-btn-2), var(--grad-btn-1));
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px var(--shadow-color-dark);
+}
+
+.reset-btn:active {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px var(--shadow-color-dark);
+}
+
+/* ==========================================================================
+   6. Win Overlay & Confetti with Glass Effect
+   ========================================================================== */
+
+.win-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+.win-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.win-message {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 30px 50px;
+  border-radius: 20px;
+  font-size: clamp(2em, 6vw, 2.5em);
+  font-weight: bold;
+  color: var(--color-win);
+  text-align: center;
+  text-shadow: 0 0 15px rgba(255, 64, 129, 0.7);
+  animation: popIn 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards, pulseWin 2s infinite alternate ease-in-out;
+  box-shadow: 0 0 15px rgba(255, 64, 129, 0.7);
+}
+
+.win-overlay .replay-btn {
+  margin-top: 30px;
+  padding: 14px 28px;
+  background: linear-gradient(45deg, var(--grad-replay-1), var(--grad-replay-2));
+  color: var(--text-light);
+  font-size: 1.2em;
+  border-radius: var(--radius-btn);
+  transition: all var(--transition-medium);
+}
+
+.win-overlay .replay-btn:hover {
+  background: linear-gradient(45deg, var(--grad-replay-2), var(--grad-replay-1));
+  transform: scale(1.05);
+}
+
+.win-emojis {
+  font-size: 3em;
+  margin-top: 20px;
+  animation: floatEmojis 2s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 10px var(--color-win));
+}
+
+/* Confetti container */
+.confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1001;
+}
+
+.confetti-piece {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background-color: var(--color-win);
+  opacity: 0.8;
+  animation: fall-1 4s linear infinite;
+}
+
+/* ==========================================================================
+   7. Animations
+   ========================================================================== */
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes popIn {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulseWin {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
+}
+
+@keyframes floatEmojis {
+  from { transform: translateY(0); }
+  to { transform: translateY(-15px); }
+}
+
+@keyframes fall-1 {
+  0% { transform: translate(0, -10vh) rotate(0deg); }
+  100% { transform: translate(10vw, 110vh) rotate(360deg); }
+}
+
+@keyframes fall-2 {
+  0% { transform: translate(0, -10vh) rotate(0deg); }
+  100% { transform: translate(-15vw, 110vh) rotate(-360deg); }
+}
+
+@keyframes fall-3 {
+  0% { transform: translate(0, -10vh) rotate(0deg); }
+  100% { transform: translate(5vw, 110vh) rotate(720deg); }
+}
+
+/* ==========================================================================
+   8. Responsive Adjustments
+   ========================================================================== */
+
+@media (max-width: 480px) {
+  body {
+    padding: 10px;
+  }
+  
+  .glass-container {
+    padding: 20px;
+  }
+  
+  h1 {
+    margin-bottom: 20px;
+  }
+
+  table {
+     margin-bottom: 20px;
+  }
+}
