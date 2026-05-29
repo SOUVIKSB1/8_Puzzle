@@ -30,3 +30,7 @@ class PuzzleTestCase(TestCase):
         data = response.json()
         self.assertIn('board', data)
         self.assertFalse(data['game_won'])
+        
+        response = client.get(reverse('api_ping'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'status': 'ok'})

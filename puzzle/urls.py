@@ -9,4 +9,5 @@ urlpatterns = [
     path('api/reset/', views.reset, name='api_reset'),
     path('api/solve/', views.solve_puzzle, name='api_solve'),
     path('api/hint/', views.get_hint, name='api_hint'),
+    path('api/ping/', views.ping, name='api_ping'),
 ]
