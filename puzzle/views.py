@@ -177,6 +177,3 @@ def get_hint(request):
         'hint': path[0],
         'nodes_explored': nodes
     })
-
-def ping(request):
-    return JsonResponse({'status': 'ok'})
